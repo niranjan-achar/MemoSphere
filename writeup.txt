@@ -1,0 +1,77 @@
+MemoSphere - Personal Digital Assistant
+=====================================
+
+PROJECT OVERVIEW
+----------------
+MemoSphere is a comprehensive personal utility web application designed to help 
+users organize their digital life efficiently. It serves as a centralized 
+platform for managing reminders, tasks, secure credentials, notes, and documents.
+The application prioritizes user privacy with AES-256 encryption for sensitive data 
+and implements Row Level Security (RLS) policies ensuring complete data isolation between users.
+
+Key Features:
+• Reminders & Scheduler - CRUD operations with recurring reminders and browser push notifications
+• To-Do Manager - Task tracking with priority levels (urgent/high/medium/low) and status management
+• Secure Vault - Encrypted storage for passwords, credit cards, secure notes, and identity information
+• Notes & MemoSpheres - Rich note-taking with tags, categories, favorites, and full-text search
+• Document Manager - File upload/download with Supabase Storage integration supporting PDFs, images, and office documents
+
+
+TECHNOLOGIES USED
+-----------------
+Frontend:
+• Next.js 15 (App Router) - React framework with server-side rendering
+• React 19 - UI component library
+• TypeScript - Type-safe JavaScript
+• Tailwind CSS - Utility-first CSS framework
+
+Backend:
+• Next.js API Routes - RESTful API endpoints
+• Supabase - Backend-as-a-Service (PostgreSQL database + Storage + Authentication)
+
+Security:
+• Google OAuth 2.0 - Secure authentication via Supabase Auth
+• AES-256 Encryption - Client-side encryption using crypto-js
+• Row Level Security (RLS) - Database-level access control
+
+Additional:
+• Web Push API - Browser notifications for reminders
+• PWA Support - Installable progressive web app
+
+
+ARCHITECTURE DIAGRAM
+--------------------
+
+    ┌─────────────────────────────────────────────────────────┐
+    │                      CLIENT LAYER                       │
+    │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │
+    │  │  Dashboard  │  │   Vault     │  │  Documents  │      │
+    │  │  Reminders  │  │   Notes     │  │   To-Dos    │      │
+    │  └─────────────┘  └─────────────┘  └─────────────┘      │
+    └───────────────────────────┬─────────────────────────────┘
+                                │ HTTPS
+    ┌───────────────────────────▼─────────────────────────────┐
+    │                    NEXT.JS SERVER                       │
+    │  ┌─────────────────────────────────────────────────┐    │
+    │  │  API Routes: /api/reminders, /api/vault, etc.   │    │
+    │  │  Middleware: Authentication & Route Protection  │    │
+    │  └─────────────────────────────────────────────────┘    │
+    └───────────────────────────┬─────────────────────────────┘
+                                │
+    ┌───────────────────────────▼─────────────────────────────┐
+    │                      SUPABASE                           │
+    │  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
+    │  │PostgreSQL│  │  Storage │  │   Auth   │               │
+    │  │ Database │  │  (Files) │  │ (OAuth)  │               │
+    │  │  + RLS   │  │          │  │          │               │
+    │  └──────────┘  └──────────┘  └──────────┘               │
+    └─────────────────────────────────────────────────────────┘
+
+Data Flow:
+1. User authenticates via Google OAuth through Supabase Auth
+2. Client components make API requests to Next.js API routes
+3. API routes validate authentication and perform database operations
+4. Sensitive vault data is encrypted client-side before storage
+5. Files are uploaded directly to Supabase Storage with RLS policies
+6. Real-time updates enabled through Supabase subscriptions
+

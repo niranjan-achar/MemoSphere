@@ -1,0 +1,45 @@
+{
+  "name": "memosphere-second-brain",
+  "version": "1.0.0",
+  "description": "AI-powered personal digital assistant - Your Second Brain",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "crypto-js": "^4.2.0",
+    "date-fns": "^4.1.0",
+    "next": "^16.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.13.0",
+    "uuid": "^10.0.0",
+    "web-push": "^3.6.7",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^22.7.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/uuid": "^10.0.0",
+    "@types/web-push": "^3.6.3",
+    "autoprefixer": "^10.4.20",
+    "baseline-browser-mapping": "^2.9.19",
+    "eslint": "^9.12.0",
+    "eslint-config-next": "^15.1.3",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
