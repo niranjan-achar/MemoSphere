@@ -77,7 +77,7 @@ export default function NotesClient({ user }: NotesClientProps) {
     try {
       const response = await fetch(`/api/notes/${id}`, {
         method: 'DELETE',
-      }); apiF
+      });
 
       if (response.ok) {
         await loadNotes();

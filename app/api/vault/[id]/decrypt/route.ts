@@ -4,7 +4,7 @@ import { decryptVaultData } from '@/lib/encryption';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -14,14 +14,14 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const itemId = params.id;
+    const { id } = await params;
 
     const { data: item, error } = await supabase
       .from('vault')
       .select('*')
-      .eq('id', itemId)
+      .eq('id', id)
       .eq('user_id', user.id)
-      .single();
+      .single() as { data: { data_encrypted: string } | null; error: any };
 
     if (error || !item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });

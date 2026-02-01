@@ -90,14 +90,11 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <Link key={stat.label} href={stat.href}>
-            <GlassCard
-              hover
-              className={`p-6 cursor-pointer animate-slide-up`}
-              style={{ animationDelay: `${index * 100}ms` } as React.CSSProperties}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{stat.label}</p>
+            <div style={{ animationDelay: `${index * 100}ms` }} className="animate-slide-up">
+              <GlassCard hover className="p-6 cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{stat.label}</p>
                   <p className={`text-4xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}>
                     {stat.value}
                   </p>
@@ -105,13 +102,15 @@ export default async function DashboardPage() {
                 <div className="text-5xl opacity-80">{stat.icon}</div>
               </div>
             </GlassCard>
+            </div>
           </Link>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <GlassCard className="p-6 md:p-8 animate-slide-up" style={{ animationDelay: '400ms' } as React.CSSProperties}>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h2>
+      <div style={{ animationDelay: '400ms' }} className="animate-slide-up">
+        <GlassCard className="p-6 md:p-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {quickActions.map((action) => (
             <Link key={action.title} href={action.href}>
@@ -127,9 +126,11 @@ export default async function DashboardPage() {
           ))}
         </div>
       </GlassCard>
+      </div>
 
       {/* CTA Section */}
-      <div className="relative overflow-hidden rounded-2xl animate-slide-up" style={{ animationDelay: '500ms' } as React.CSSProperties}>
+      <div className="animate-slide-up" style={{ animationDelay: '500ms' }}>
+        <div className="relative overflow-hidden rounded-2xl">
         <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-secondary-500 opacity-90" />
         <div className="relative p-8 md:p-12 text-white">
           <h2 className="text-3xl font-bold mb-3">Stay Organized, Stay Productive</h2>
@@ -150,6 +151,7 @@ export default async function DashboardPage() {
               Set a Reminder
             </Link>
           </div>
+        </div>
         </div>
       </div>
     </div>

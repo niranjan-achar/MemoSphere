@@ -4,7 +4,7 @@ import { updateDocument, deleteDocument } from '@/lib/supabase/queries';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -14,8 +14,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const updates = await request.json();
-    const updatedDocument = await updateDocument(params.id, updates);
+    const updatedDocument = await updateDocument(id, updates);
 
     return NextResponse.json(updatedDocument);
   } catch (error) {
@@ -26,7 +27,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -36,12 +37,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Get document to find storage path
     const { data: document } = await supabase
       .from('documents')
       .select('storage_path')
-      .eq('id', params.id)
-      .single();
+      .eq('id', id)
+      .single() as { data: { storage_path?: string } | null };
 
     if (document?.storage_path) {
       // Delete from storage
@@ -50,7 +53,7 @@ export async function DELETE(
         .remove([document.storage_path]);
     }
 
-    await deleteDocument(params.id);
+    await deleteDocument(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete document error:', error);

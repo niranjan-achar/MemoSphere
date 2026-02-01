@@ -44,7 +44,7 @@ export default function TodoCard({ todo, onEdit, onDelete, onToggleStatus }: Tod
             className={`flex-shrink-0 w-6 h-6 border-2 rounded-full transition-all duration-200 flex items-center justify-center mt-1 ${
               isCompleted
                 ? 'bg-green-500 border-green-600'
-                : `${config.border} hover:bg-opacity-20 hover:${config.bg}`
+              : `${config.border} hover:bg-opacity-20`
             } group-hover:scale-110`}
           >
             {isCompleted && <span className="text-white text-xs">✓</span>}
