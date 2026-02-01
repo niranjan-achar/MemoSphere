@@ -120,9 +120,14 @@ export default function RemindersClient({ user }: RemindersClientProps) {
       if (response.ok) {
         await loadReminders();
         setShowForm(false);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Create reminder failed:', errorData);
+        alert(`Failed to create reminder: ${errorData.error || response.statusText}`);
       }
     } catch (error) {
       console.error('Error creating reminder:', error);
+      alert('Failed to create reminder. Please try again.');
     }
   };
 

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('vault_pin_hash')
       .eq('id', user.id)
-      .single();
+        .single() as { data: { vault_pin_hash: string | null } | null; error: any };
 
     if (error) {
       return NextResponse.json({ hasPin: false });
@@ -86,7 +86,7 @@ export async function PUT(request: NextRequest) {
       .from('users')
       .select('vault_pin_hash')
       .eq('id', user.id)
-      .single();
+        .single() as { data: { vault_pin_hash: string | null } | null; error: any };
 
     if (error || !userData?.vault_pin_hash) {
       return NextResponse.json({ error: 'No PIN set' }, { status: 404 });

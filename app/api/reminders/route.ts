@@ -29,14 +29,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Validate required fields
+    if (!body.title || !body.datetime) {
+      return NextResponse.json({ error: 'Title and datetime are required' }, { status: 400 });
+    }
+
     const reminder = await createReminder({
       user_id: user.id,
-      ...body,
+      title: body.title,
+      description: body.description || null,
+      datetime: body.datetime,
+      repeat: body.repeat || 'none',
+      status: body.status || 'pending',
     });
 
     return NextResponse.json(reminder, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create reminder error:', error);
-    return NextResponse.json({ error: 'Failed to create reminder' }, { status: 500 });
+    return NextResponse.json({
+      error: 'Failed to create reminder',
+      details: error?.message || String(error)
+    }, { status: 500 });
   }
 }
