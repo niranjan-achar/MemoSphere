@@ -6,14 +6,12 @@ interface NoteCardProps {
   note: Note;
   onEdit: (note: Note) => void;
   onDelete: (id: string) => void;
-  onToggleFavorite: (id: string, currentFavorite: boolean) => void;
 }
 
 export default function NoteCard({
   note,
   onEdit,
   onDelete,
-  onToggleFavorite,
 }: NoteCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -30,23 +28,20 @@ export default function NoteCard({
   };
 
   return (
-    <div className="glass rounded-xl p-5 border border-yellow-500/20 dark:border-yellow-400/20 hover:border-yellow-500/40 dark:hover:border-yellow-400/40 hover:shadow-lg transition-all duration-200 group animate-fade-in">
-      {/* Header with favorite and actions */}
-      <div className="flex items-start justify-between mb-3">
-        <button
-          onClick={() => onToggleFavorite(note.id, note.is_favorite)}
-          className="text-2xl hover:scale-110 transition-transform"
-        >
-          {note.is_favorite ? '⭐' : '☆'}
-        </button>
-        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="glass rounded-xl p-4 md:p-5 border border-yellow-500/20 dark:border-yellow-400/20 hover:border-yellow-500/40 dark:hover:border-yellow-400/40 hover:shadow-lg transition-all duration-200 group animate-fade-in">
+      {/* Header with actions */}
+      <div className="flex items-start justify-between mb-2">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1 pr-2">
+          {note.title}
+        </h3>
+        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => onEdit(note)}
             className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
             title="Edit note"
           >
             <svg
-              className="w-5 h-5"
+              className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -65,7 +60,7 @@ export default function NoteCard({
             title="Delete note"
           >
             <svg
-              className="w-5 h-5"
+              className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -81,49 +76,16 @@ export default function NoteCard({
         </div>
       </div>
 
-      {/* Title */}
-      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-        {note.title}
-      </h3>
-
       {/* Content Preview */}
-      <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+      <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-3">
         {truncateContent(note.content)}
       </p>
 
-      {/* Category */}
-      {note.category && (
-        <div className="mb-3">
-          <span className="inline-block px-3 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 text-xs font-medium rounded-full">
-            {note.category}
-          </span>
-        </div>
-      )}
-
-      {/* Tags */}
-      {note.tags && note.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {note.tags.slice(0, 3).map((tag, index) => (
-            <span
-              key={index}
-              className="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
-            >
-              #{tag}
-            </span>
-          ))}
-          {note.tags.length > 3 && (
-            <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-              +{note.tags.length - 3} more
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-gray-500 mt-4 pt-3 border-t border-gray-100">
-        <span>Created {formatDate(note.created_at)}</span>
+      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
+        <span>{formatDate(note.created_at)}</span>
         {note.updated_at !== note.created_at && (
-          <span className="text-blue-600">Updated</span>
+          <span className="text-blue-600 dark:text-blue-400">Edited</span>
         )}
       </div>
     </div>

@@ -18,8 +18,18 @@ export default function VaultClient({ user }: VaultClientProps) {
   const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
   const [filter, setFilter] = useState<'all' | VaultCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // PIN states
+  const [hasPin, setHasPin] = useState<boolean | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [masterPassword, setMasterPassword] = useState('');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [isSettingPin, setIsSettingPin] = useState(false);
+
+  useEffect(() => {
+    checkPinStatus();
+  }, []);
 
   useEffect(() => {
     if (isUnlocked) {
@@ -27,12 +37,84 @@ export default function VaultClient({ user }: VaultClientProps) {
     }
   }, [isUnlocked]);
 
-  const handleUnlock = () => {
-    // In production, verify master password against stored hash
-    if (masterPassword.length >= 6) {
-      setIsUnlocked(true);
-    } else {
-      alert('Master password must be at least 6 characters');
+  const checkPinStatus = async () => {
+    try {
+      const response = await apiFetch('/api/vault/pin');
+      if (response.ok) {
+        const data = await response.json();
+        setHasPin(data.hasPin);
+        setIsSettingPin(!data.hasPin);
+      }
+    } catch (error) {
+      console.error('Error checking PIN status:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetPin = async () => {
+    setPinError('');
+
+    if (pin.length < 4) {
+      setPinError('PIN must be at least 4 digits');
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      setPinError('PINs do not match');
+      return;
+    }
+
+    try {
+      const response = await apiFetch('/api/vault/pin', {
+        method: 'POST',
+        body: JSON.stringify({ pin }),
+      });
+
+      if (response.ok) {
+        setHasPin(true);
+        setIsSettingPin(false);
+        setIsUnlocked(true);
+        setPin('');
+        setConfirmPin('');
+      } else {
+        const error = await response.json();
+        setPinError(error.error || 'Failed to set PIN');
+      }
+    } catch (error) {
+      console.error('Error setting PIN:', error);
+      setPinError('Failed to set PIN');
+    }
+  };
+
+  const handleUnlock = async () => {
+    setPinError('');
+
+    if (pin.length < 4) {
+      setPinError('PIN must be at least 4 digits');
+      return;
+    }
+
+    try {
+      const response = await apiFetch('/api/vault/pin', {
+        method: 'PUT',
+        body: JSON.stringify({ pin }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.valid) {
+          setIsUnlocked(true);
+          setPin('');
+        } else {
+          setPinError('Incorrect PIN');
+        }
+      } else {
+        setPinError('Failed to verify PIN');
+      }
+    } catch (error) {
+      console.error('Error verifying PIN:', error);
+      setPinError('Failed to verify PIN');
     }
   };
 
@@ -61,9 +143,14 @@ export default function VaultClient({ user }: VaultClientProps) {
       if (response.ok) {
         await loadVaultItems();
         setShowForm(false);
+      } else {
+        const errorData = await response.json();
+        console.error('Create vault item failed:', errorData);
+        alert(errorData.error || 'Failed to create vault item');
       }
     } catch (error) {
       console.error('Error creating vault item:', error);
+      alert('Failed to create vault item. Please try again.');
     }
   };
 
@@ -77,9 +164,14 @@ export default function VaultClient({ user }: VaultClientProps) {
       if (response.ok) {
         await loadVaultItems();
         setEditingItem(null);
+      } else {
+        const errorData = await response.json();
+        console.error('Update vault item failed:', errorData);
+        alert(errorData.error || 'Failed to update vault item');
       }
     } catch (error) {
       console.error('Error updating vault item:', error);
+      alert('Failed to update vault item. Please try again.');
     }
   };
 
@@ -113,47 +205,145 @@ export default function VaultClient({ user }: VaultClientProps) {
     identities: vaultItems.filter((i) => i.category === 'identity').length,
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  // Set PIN screen
+  if (isSettingPin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-md w-full mx-4">
+          <div className="glass-strong rounded-2xl shadow-2xl p-8 border border-purple-200 dark:border-purple-700">
+            <div className="text-center mb-8">
+              <div className="text-6xl mb-4">🔐</div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                Secure Your Vault
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">Set a PIN to protect your sensitive information</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Create PIN (at least 4 digits)
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={pin}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    setPin(value);
+                    setPinError('');
+                  }}
+                  placeholder="Enter 4-6 digit PIN"
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Confirm PIN
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={confirmPin}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    setConfirmPin(value);
+                    setPinError('');
+                  }}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSetPin()}
+                  placeholder="Re-enter PIN"
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {pinError && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{pinError}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleSetPin}
+                disabled={!pin || !confirmPin}
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                🔒 Set PIN & Continue
+              </button>
+            </div>
+
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <p className="text-blue-800 dark:text-blue-200 text-sm flex items-start space-x-2">
+                <span>💡</span>
+                <span>
+                  Your PIN is encrypted and stored securely. Make sure to remember it - you'll need it to access your vault.
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Lock screen
   if (!isUnlocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
         <div className="max-w-md w-full mx-4">
-          <div className="glass-strong rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
+          <div className="glass-strong rounded-2xl shadow-2xl p-8 border border-purple-200 dark:border-purple-700">
             <div className="text-center mb-8">
               <div className="text-6xl mb-4">🔒</div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Secure Vault</h1>
-              <p className="text-gray-600 dark:text-gray-400">Enter your master password to unlock</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                Vault Locked
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">Enter your PIN to unlock</p>
             </div>
 
             <div className="space-y-4">
               <input
                 type="password"
-                value={masterPassword}
-                onChange={(e) => setMasterPassword(e.target.value)}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={pin}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  setPin(value);
+                  setPinError('');
+                }}
                 onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-                placeholder="Master Password"
-                className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Enter PIN"
+                autoFocus
+                className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
+
+              {pinError && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{pinError}</p>
+                </div>
+              )}
+
               <button
                 onClick={handleUnlock}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+                disabled={!pin}
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 🔓 Unlock Vault
               </button>
-            </div>
-
-            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-              <p className="text-yellow-800 dark:text-yellow-200 text-sm flex items-start space-x-2">
-                <span>⚠️</span>
-                <span>
-                  <strong>Note:</strong> This is a demo. In production, enter a password of at least 6 characters to unlock.
-                </span>
-              </p>
-            </div>
-
-            <div className="mt-8 text-center">
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">🔐 AES-256 Encryption</p>
-              <p className="text-gray-500 dark:text-gray-500 text-xs">Your data is encrypted end-to-end</p>
             </div>
           </div>
         </div>
@@ -165,96 +355,96 @@ export default function VaultClient({ user }: VaultClientProps) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center space-x-2">
-              <span>🔒</span>
-              <span>Secure Vault</span>
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Your passwords and sensitive data, encrypted with AES-256
-            </p>
+          <div className="flex items-center space-x-2">
+            <span className="text-2xl">🔒</span>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                Secure Vault
+              </h1>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                Your passwords and sensitive data, encrypted with AES-256
+              </p>
+            </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => {
                 setIsUnlocked(false);
-                setMasterPassword('');
+                setPin('');
               }}
-              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+              className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-sm font-medium"
             >
-              🔒 Lock Vault
+              🔒 Lock
             </button>
             <button
               onClick={() => setShowForm(true)}
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center space-x-1 text-sm"
             >
               <span>+</span>
-              <span>Add Item</span>
+              <span className="hidden sm:inline">Add Item</span>
             </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div className="glass rounded-xl p-4 border border-blue-500/20 dark:border-blue-400/20 animate-fade-in">
+        {/* Stats Cards - 2x2 grid on mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mt-4">
+          <div className="glass rounded-xl p-3 border border-blue-500/20 dark:border-blue-400/20 animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">Passwords</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.passwords}</p>
+                <p className="text-blue-600 dark:text-blue-400 text-xs font-medium">Passwords</p>
+                <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{stats.passwords}</p>
               </div>
-              <div className="text-3xl">🔑</div>
+              <div className="text-2xl">🔑</div>
             </div>
           </div>
-          <div className="glass rounded-xl p-4 border border-green-500/20 dark:border-green-400/20 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <div className="glass rounded-xl p-3 border border-green-500/20 dark:border-green-400/20 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-600 dark:text-green-400 text-sm font-medium">Cards</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.cards}</p>
+                <p className="text-green-600 dark:text-green-400 text-xs font-medium">Cards</p>
+                <p className="text-xl font-bold text-green-900 dark:text-green-100">{stats.cards}</p>
               </div>
-              <div className="text-3xl">💳</div>
+              <div className="text-2xl">💳</div>
             </div>
           </div>
-          <div className="glass rounded-xl p-4 border border-purple-500/20 dark:border-purple-400/20 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="glass rounded-xl p-3 border border-purple-500/20 dark:border-purple-400/20 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-600 dark:text-purple-400 text-sm font-medium">Notes</p>
-                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{stats.notes}</p>
+                <p className="text-purple-600 dark:text-purple-400 text-xs font-medium">Notes</p>
+                <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{stats.notes}</p>
               </div>
-              <div className="text-3xl">📝</div>
+              <div className="text-2xl">📝</div>
             </div>
           </div>
-          <div className="glass rounded-xl p-4 border border-pink-500/20 dark:border-pink-400/20 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <div className="glass rounded-xl p-3 border border-pink-500/20 dark:border-pink-400/20 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-pink-600 dark:text-pink-400 text-sm font-medium">Identities</p>
-                <p className="text-2xl font-bold text-pink-900 dark:text-pink-100">{stats.identities}</p>
+                <p className="text-pink-600 dark:text-pink-400 text-xs font-medium">Identities</p>
+                <p className="text-xl font-bold text-pink-900 dark:text-pink-100">{stats.identities}</p>
               </div>
-              <div className="text-3xl">👤</div>
+              <div className="text-2xl">👤</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-        <div className="w-full md:w-96">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔍 Search vault..."
-            className="w-full px-4 py-3 glass-strong border border-white/20 dark:border-gray-700/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-          />
-        </div>
+      <div className="flex flex-col gap-3 mb-6">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="🔍 Search vault..."
+          className="w-full px-4 py-2 glass-strong border border-white/20 dark:border-gray-700/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm"
+        />
 
-        <div className="flex items-center space-x-2 glass-strong rounded-lg p-1 border border-white/20 dark:border-gray-700/30">
+        <div className="flex items-center space-x-1 overflow-x-auto glass-strong rounded-lg p-1 border border-white/20 dark:border-gray-700/30">
           {(['all', 'password', 'card', 'note', 'identity'] as const).map((category) => (
             <button
               key={category}
               onClick={() => setFilter(category)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize whitespace-nowrap ${
                 filter === category
                   ? 'bg-indigo-600 text-white shadow'
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'

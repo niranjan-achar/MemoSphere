@@ -17,8 +17,6 @@ export default function NotesClient({ user }: NotesClientProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   useEffect(() => {
     loadNotes();
@@ -87,147 +85,46 @@ export default function NotesClient({ user }: NotesClientProps) {
     }
   };
 
-  const handleToggleFavorite = async (id: string, currentFavorite: boolean) => {
-    await handleUpdate(id, { is_favorite: !currentFavorite });
-  };
-
-  // Get all unique tags
-  const allTags = Array.from(
-    new Set(notes.flatMap((note) => note.tags || []))
-  ).sort();
-
-  // Filter notes
+  // Filter notes by search only
   const filteredNotes = notes.filter((note) => {
     const matchesSearch =
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const matchesTag = !selectedTag || note.tags?.includes(selectedTag);
-    const matchesFavorite = !showFavoritesOnly || note.is_favorite;
-
-    return matchesSearch && matchesTag && matchesFavorite;
+      note.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
-
-  // Group notes
-  const favoriteNotes = filteredNotes.filter((note) => note.is_favorite);
-  const regularNotes = filteredNotes.filter((note) => !note.is_favorite);
-
-  const stats = {
-    total: notes.length,
-    favorites: notes.filter((n) => n.is_favorite).length,
-    categories: new Set(notes.map((n) => n.category).filter(Boolean)).size,
-  };
 
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent">
               📝 Notes
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Capture and organize your thoughts and ideas
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
+              {notes.length} note{notes.length !== 1 ? 's' : ''}
             </p>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl font-medium hover:from-yellow-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
+            className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl font-medium hover:from-yellow-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2 text-sm md:text-base"
           >
             <span>+</span>
-            <span>New Note</span>
+            <span className="hidden sm:inline">New Note</span>
           </button>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="glass border border-yellow-500/20 dark:border-yellow-400/20 rounded-xl p-4 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-600 dark:text-yellow-400 text-sm font-medium">Total Notes</p>
-                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{stats.total}</p>
-              </div>
-              <div className="text-3xl">📄</div>
-            </div>
-          </div>
-          <div className="glass border border-orange-500/20 dark:border-orange-400/20 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-600 dark:text-orange-400 text-sm font-medium">Favorites</p>
-                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.favorites}</p>
-              </div>
-              <div className="text-3xl">⭐</div>
-            </div>
-          </div>
-          <div className="glass border border-pink-500/20 dark:border-pink-400/20 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-pink-600 dark:text-pink-400 text-sm font-medium">Categories</p>
-                <p className="text-2xl font-bold text-pink-900 dark:text-pink-100">{stats.categories}</p>
-              </div>
-              <div className="text-3xl">🏷️</div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="glass-strong border border-white/20 dark:border-gray-700/30 rounded-xl shadow-lg p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search notes by title, content, or tags..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900"
-            />
-          </div>
-          <button
-            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              showFavoritesOnly
-                ? 'bg-yellow-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            ⭐ Favorites Only
-          </button>
-        </div>
-
-        {/* Tag Filters */}
-        {allTags.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">Filter by tag:</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedTag(null)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  !selectedTag
-                    ? 'bg-yellow-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                All
-              </button>
-              {allTags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => setSelectedTag(tag)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    selectedTag === tag
-                      ? 'bg-yellow-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  #{tag}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Search */}
+      <div className="glass-strong border border-white/20 dark:border-gray-700/30 rounded-xl shadow-lg p-4 mb-6">
+        <input
+          type="text"
+          placeholder="Search notes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800"
+        />
       </div>
 
       {/* Notes Form Modal */}
@@ -276,17 +173,13 @@ export default function NotesClient({ user }: NotesClientProps) {
       ) : filteredNotes.length === 0 ? (
         <div className="bg-white rounded-xl shadow-md p-12 text-center">
           <div className="text-6xl mb-4">📝</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            {searchQuery || selectedTag || showFavoritesOnly
-              ? 'No notes found'
-              : 'No notes yet'}
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              {searchQuery ? 'No notes found' : 'No notes yet'}
           </h3>
-          <p className="text-gray-600 mb-6">
-            {searchQuery || selectedTag || showFavoritesOnly
-              ? 'Try adjusting your filters'
-              : 'Start capturing your thoughts and ideas'}
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {searchQuery ? 'Try a different search' : 'Start capturing your thoughts and ideas'}
           </p>
-          {!searchQuery && !selectedTag && !showFavoritesOnly && (
+            {!searchQuery && (
             <button
               onClick={() => setShowForm(true)}
               className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl font-medium hover:from-yellow-700 hover:to-orange-700 transition-all duration-200"
@@ -295,54 +188,16 @@ export default function NotesClient({ user }: NotesClientProps) {
             </button>
           )}
         </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Favorite Notes */}
-          {favoriteNotes.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="mr-2">⭐</span>
-                Favorites ({favoriteNotes.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {favoriteNotes.map((note) => (
-                  <NoteCard
-                    key={note.id}
-                    note={note}
-                    onEdit={(note: Note) => setEditingNote(note)}
-                    onDelete={(id: string) => handleDelete(id)}
-                    onToggleFavorite={(id: string, isFavorite: boolean) =>
-                      handleToggleFavorite(id, isFavorite)
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Regular Notes */}
-          {regularNotes.length > 0 && (
-            <div>
-              {favoriteNotes.length > 0 && (
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  All Notes ({regularNotes.length})
-                </h2>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {regularNotes.map((note) => (
-                  <NoteCard
-                    key={note.id}
-                    note={note}
-                    onEdit={(note: Note) => setEditingNote(note)}
-                    onDelete={(id: string) => handleDelete(id)}
-                    onToggleFavorite={(id: string, isFavorite: boolean) =>
-                      handleToggleFavorite(id, isFavorite)
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredNotes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  onEdit={(note: Note) => setEditingNote(note)}
+                  onDelete={(id: string) => handleDelete(id)}
+            />
+          ))}
         </div>
       )}
     </div>

@@ -16,14 +16,22 @@ export const getAuthHeaders = async () => {
 
 // API fetch wrapper with auth
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
-  const headers = await getAuthHeaders();
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    // Don't set Content-Type for FormData - browser will set it with boundary
+    const isFormData = options.body instanceof FormData;
+
+    const headers: Record<string, string> = {
+        ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
+        ...(!isFormData && { 'Content-Type': 'application/json' }),
+        ...(options.headers as Record<string, string> || {}),
+    };
   
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers: {
-      ...headers,
-      ...options.headers,
-    },
+      headers,
   });
 
   return response;

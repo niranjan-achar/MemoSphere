@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { Reminder, RepeatType } from '@/types';
 import { apiFetch } from '@/lib/api/config';
@@ -19,10 +19,81 @@ export default function RemindersClient({ user }: RemindersClientProps) {
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
     loadReminders();
+    // Check notification permission on mount
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
   }, []);
+
+  // Schedule notifications for reminders
+  useEffect(() => {
+    if (notificationPermission !== 'granted') return;
+
+    const scheduledTimeouts: NodeJS.Timeout[] = [];
+
+    reminders.forEach((reminder) => {
+      if (reminder.status !== 'pending') return;
+
+      const reminderTime = new Date(reminder.datetime).getTime();
+      const now = Date.now();
+      const timeUntilReminder = reminderTime - now;
+
+      // Schedule notification if reminder is in the future and within 24 hours
+      if (timeUntilReminder > 0 && timeUntilReminder < 24 * 60 * 60 * 1000) {
+        const timeout = setTimeout(() => {
+          showNotification(reminder);
+        }, timeUntilReminder);
+        scheduledTimeouts.push(timeout);
+      }
+    });
+
+    return () => {
+      scheduledTimeouts.forEach(clearTimeout);
+    };
+  }, [reminders, notificationPermission]);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('This browser does not support notifications');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+
+    if (permission === 'granted') {
+      // Register service worker for push notifications
+      if ('serviceWorker' in navigator) {
+        try {
+          await navigator.serviceWorker.ready;
+          new Notification('MemoSphere', {
+            body: 'Notifications enabled! You\'ll be reminded of your tasks.',
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+          });
+        } catch (error) {
+          console.error('Service worker error:', error);
+        }
+      }
+    }
+  };
+
+  const showNotification = (reminder: Reminder) => {
+    if (notificationPermission !== 'granted') return;
+
+    new Notification(`⏰ Reminder: ${reminder.title}`, {
+      body: reminder.description || 'Time for your scheduled reminder!',
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      tag: `reminder-${reminder.id}`,
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+    });
+  };
 
   const loadReminders = async () => {
     try {
@@ -107,63 +178,83 @@ export default function RemindersClient({ user }: RemindersClientProps) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               ⏰ Reminders
             </h1>
-            <p className="text-gray-600 mt-2">
-              Never miss important tasks with smart reminders
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
+              Never miss important tasks
             </p>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
+            className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2 text-sm md:text-base"
           >
             <span>+</span>
-            <span>Add</span>
+            <span className="hidden sm:inline">Add</span>
           </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="flex flex-wrap gap-4 mt-6">
-          <div className="glass border border-purple-500/20 dark:border-purple-400/20 rounded-xl p-4 animate-fade-in flex-1 min-w-[150px]">
+        {/* Notification Permission Banner */}
+        {notificationPermission !== 'granted' && (
+          <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-600 dark:text-purple-400 text-sm font-medium">Upcoming</p>
-                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{upcomingReminders.length}</p>
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">🔔</span>
+                <p className="text-sm text-purple-800 dark:text-purple-200">
+                  Enable notifications to get reminded on time
+                </p>
               </div>
-              <div className="text-3xl">📅</div>
+              <button
+                onClick={requestNotificationPermission}
+                className="px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Enable
+              </button>
             </div>
           </div>
-          <div className="glass border border-red-500/20 dark:border-red-400/20 rounded-xl p-4 animate-fade-in flex-1 min-w-[150px]" style={{ animationDelay: '0.1s' }}>
+        )}
+
+        {/* Stats Cards - 3 column grid */}
+        <div className="grid grid-cols-3 gap-2 md:gap-4 mt-4">
+          <div className="glass border border-purple-500/20 dark:border-purple-400/20 rounded-xl p-3 animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-red-600 dark:text-red-400 text-sm font-medium">Overdue</p>
-                <p className="text-2xl font-bold text-red-900 dark:text-red-100">{pastReminders.length}</p>
+                <p className="text-purple-600 dark:text-purple-400 text-xs font-medium">Upcoming</p>
+                <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{upcomingReminders.length}</p>
               </div>
-              <div className="text-3xl">⚠️</div>
+              <div className="text-2xl">📅</div>
             </div>
           </div>
-          <div className="glass border border-green-500/20 dark:border-green-400/20 rounded-xl p-4 animate-fade-in flex-1 min-w-[150px]" style={{ animationDelay: '0.2s' }}>
+          <div className="glass border border-red-500/20 dark:border-red-400/20 rounded-xl p-3 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-600 dark:text-green-400 text-sm font-medium">Completed</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-100">{completedReminders.length}</p>
+                <p className="text-red-600 dark:text-red-400 text-xs font-medium">Overdue</p>
+                <p className="text-xl font-bold text-red-900 dark:text-red-100">{pastReminders.length}</p>
               </div>
-              <div className="text-3xl">✅</div>
+              <div className="text-2xl">⚠️</div>
+            </div>
+          </div>
+          <div className="glass border border-green-500/20 dark:border-green-400/20 rounded-xl p-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-600 dark:text-green-400 text-xs font-medium">Done</p>
+                <p className="text-xl font-bold text-green-900 dark:text-green-100">{completedReminders.length}</p>
+              </div>
+              <div className="text-2xl">✅</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* View Toggle & Filters */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-2 glass-strong border border-white/20 dark:border-gray-700/30 rounded-lg p-1 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+        <div className="flex items-center space-x-1 glass-strong border border-white/20 dark:border-gray-700/30 rounded-lg p-1 shadow-sm">
           <button
             onClick={() => setView('list')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
               view === 'list'
                 ? 'bg-purple-600 dark:bg-purple-500 text-white shadow'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
@@ -173,7 +264,7 @@ export default function RemindersClient({ user }: RemindersClientProps) {
           </button>
           <button
             onClick={() => setView('calendar')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
               view === 'calendar'
                 ? 'bg-purple-600 dark:bg-purple-500 text-white shadow'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
@@ -183,36 +274,36 @@ export default function RemindersClient({ user }: RemindersClientProps) {
           </button>
         </div>
 
-        <div className="flex items-center space-x-2 bg-white rounded-lg p-1 shadow-sm">
+        <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               filter === 'all'
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
             All
           </button>
           <button
             onClick={() => setFilter('pending')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               filter === 'pending'
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
             Active
           </button>
           <button
             onClick={() => setFilter('completed')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               filter === 'completed'
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
-            Completed
+            Done
           </button>
         </div>
       </div>
@@ -226,7 +317,7 @@ export default function RemindersClient({ user }: RemindersClientProps) {
         <div className="space-y-6">
           {upcomingReminders.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Upcoming</h2>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Upcoming</h2>
               <div className="space-y-3">
                 {upcomingReminders.map((reminder) => (
                   <ReminderCard

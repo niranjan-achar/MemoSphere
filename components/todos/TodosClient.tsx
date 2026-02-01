@@ -124,82 +124,80 @@ export default function TodosClient({ user }: TodosClientProps) {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent">
               ✅ To-Do List
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Stay organized and productive with smart task management
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
+              Stay organized and productive
             </p>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
+            className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2 text-sm md:text-base"
           >
             <span>+</span>
-            <span>New Task</span>
+            <span className="hidden sm:inline">New Task</span>
           </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div className="glass border border-blue-500/20 dark:border-blue-400/20 rounded-xl p-4 animate-fade-in">
+        {/* Stats Cards - 2x2 grid on mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+          <div className="glass border border-blue-500/20 dark:border-blue-400/20 rounded-xl p-3 animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">Total Tasks</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.total}</p>
+                <p className="text-blue-600 dark:text-blue-400 text-xs font-medium">Total</p>
+                <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{stats.total}</p>
               </div>
-              <div className="text-3xl">📊</div>
+              <div className="text-2xl">📊</div>
             </div>
           </div>
-          <div className="glass border border-green-500/20 dark:border-green-400/20 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <div className="glass border border-green-500/20 dark:border-green-400/20 rounded-xl p-3 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-600 dark:text-green-400 text-sm font-medium">Completed</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.completed}</p>
+                <p className="text-green-600 dark:text-green-400 text-xs font-medium">Done</p>
+                <p className="text-xl font-bold text-green-900 dark:text-green-100">{stats.completed}</p>
               </div>
-              <div className="text-3xl">✅</div>
+              <div className="text-2xl">✅</div>
             </div>
           </div>
-          <div className="glass border border-yellow-500/20 dark:border-yellow-400/20 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="glass border border-yellow-500/20 dark:border-yellow-400/20 rounded-xl p-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-yellow-600 dark:text-yellow-400 text-sm font-medium">In Progress</p>
-                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{stats.inProgress}</p>
+                <p className="text-yellow-600 dark:text-yellow-400 text-xs font-medium">Progress</p>
+                <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">{stats.inProgress}</p>
               </div>
-              <div className="text-3xl">⚡</div>
+              <div className="text-2xl">⚡</div>
             </div>
           </div>
-          <div className="glass border border-purple-500/20 dark:border-purple-400/20 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <div className="glass border border-purple-500/20 dark:border-purple-400/20 rounded-xl p-3 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-600 dark:text-purple-400 text-sm font-medium">Completion</p>
-                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{completionRate}%</p>
+                <p className="text-purple-600 dark:text-purple-400 text-xs font-medium">Rate</p>
+                <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{completionRate}%</p>
               </div>
-              <div className="text-3xl">🎯</div>
+              <div className="text-2xl">🎯</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-        <div className="w-full md:w-96">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔍 Search tasks..."
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-          />
-        </div>
+      {/* Search & Filters - Combined on mobile */}
+      <div className="flex flex-col gap-3 mb-6">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="🔍 Search tasks..."
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm"
+        />
 
-        <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm">
+        <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm overflow-x-auto">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
               filter === 'all'
                 ? 'bg-green-600 text-white shadow'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -209,7 +207,7 @@ export default function TodosClient({ user }: TodosClientProps) {
           </button>
           <button
             onClick={() => setFilter('todo')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
               filter === 'todo'
                 ? 'bg-green-600 text-white shadow'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -219,7 +217,7 @@ export default function TodosClient({ user }: TodosClientProps) {
           </button>
           <button
             onClick={() => setFilter('in_progress')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
               filter === 'in_progress'
                 ? 'bg-green-600 text-white shadow'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -229,13 +227,13 @@ export default function TodosClient({ user }: TodosClientProps) {
           </button>
           <button
             onClick={() => setFilter('completed')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
               filter === 'completed'
                 ? 'bg-green-600 text-white shadow'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
-            Completed
+            Done
           </button>
         </div>
       </div>

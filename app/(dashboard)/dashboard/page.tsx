@@ -86,20 +86,20 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Cards - 2x2 grid on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {stats.map((stat, index) => (
           <Link key={stat.label} href={stat.href}>
             <div style={{ animationDelay: `${index * 100}ms` }} className="animate-slide-up">
-              <GlassCard hover className="p-6 cursor-pointer">
+              <GlassCard hover className="p-4 md:p-6 cursor-pointer h-full">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{stat.label}</p>
-                  <p className={`text-4xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1 md:mb-2">{stat.label}</p>
+                    <p className={`text-2xl md:text-4xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}>
                     {stat.value}
                   </p>
                 </div>
-                <div className="text-5xl opacity-80">{stat.icon}</div>
+                  <div className="text-3xl md:text-5xl opacity-80">{stat.icon}</div>
               </div>
             </GlassCard>
             </div>

@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { apiFetch } from '@/lib/api/config';
 
 interface DocumentUploadProps {
-  onUpload: (formData: FormData) => void;
+  onUpload: () => void;
   onCancel: () => void;
 }
 
@@ -14,10 +16,18 @@ export default function DocumentUpload({ onUpload, onCancel }: DocumentUploadPro
   const [tags, setTags] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (selectedFile: File) => {
+    // Check file size (max 50MB)
+    if (selectedFile.size > 50 * 1024 * 1024) {
+      setUploadError('File size exceeds 50MB limit');
+      return;
+    }
     setFile(selectedFile);
+    setUploadError('');
     if (!name) {
       setName(selectedFile.name);
     }
@@ -51,22 +61,78 @@ export default function DocumentUpload({ onUpload, onCancel }: DocumentUploadPro
     e.preventDefault();
     
     if (!file) {
-      alert('Please select a file');
+      setUploadError('Please select a file');
       return;
     }
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', name);
-    formData.append('category', category);
-    formData.append('tags', tags);
+    setUploadError('');
+    setUploadProgress(10);
 
     try {
-      await onUpload(formData);
-    } finally {
-      setIsUploading(false);
-    }
+      const supabase = createClient();
+
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('You must be logged in to upload documents');
+      }
+
+      setUploadProgress(20);
+
+      // Generate unique file path
+      const timestamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${user.id}/${timestamp}_${safeName}`;
+
+      // Upload directly to Supabase Storage (bypasses backend size limits)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(uploadError.message || 'Failed to upload file to storage');
+      }
+
+      setUploadProgress(70);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      setUploadProgress(80);
+
+      // Save document metadata to database via backend
+      const response = await apiFetch('/api/documents', {
+        method: 'POST',
+        body: JSON.stringify({
+          file_name: name || file.name,
+          file_url: urlData.publicUrl,
+          file_type: file.type || 'application/octet-stream',
+          file_size: file.size,
+          category: category || null,
+          tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : []
+        }),
+      });
+
+      setUploadProgress(100);
+
+      if (response.ok) {
+        onUpload();
+      } else {
+        const error = await response.json();
+        // Try to clean up the uploaded file if metadata save fails
+        await supabase.storage.from('documents').remove([filePath]);
+        setUploadError(error.error || 'Failed to save document metadata');
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      setUploadError(error.message || 'Failed to upload document. Please try again.');
   };
 
   return (
@@ -75,6 +141,12 @@ export default function DocumentUpload({ onUpload, onCancel }: DocumentUploadPro
         <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
           📤 Upload Document
         </h2>
+
+        {uploadError && (
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm">
+            {uploadError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* File Drop Zone */}
@@ -179,6 +251,16 @@ export default function DocumentUpload({ onUpload, onCancel }: DocumentUploadPro
             />
           </div>
 
+          {/* Progress Bar */}
+          {isUploading && (
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <button
@@ -189,7 +271,7 @@ export default function DocumentUpload({ onUpload, onCancel }: DocumentUploadPro
               {isUploading ? (
                 <>
                   <span className="animate-spin">⏳</span>
-                  <span>Uploading...</span>
+                  <span>Uploading {uploadProgress}%</span>
                 </>
               ) : (
                 <>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { PWAProvider } from '@/components/pwa/PWAProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,8 +20,14 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: '/icon-512x512.svg',
-    apple: '/icon-512x512.svg',
+    icon: [
+      { url: '/icon-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { url: '/icon-512x512.svg', sizes: '512x512', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/icon-152x152.svg', sizes: '152x152', type: 'image/svg+xml' },
+      { url: '/icon-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
+    ],
   },
   other: {
     'mobile-web-app-capable': 'yes',
@@ -32,7 +39,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0ea5e9',
+  themeColor: '#8b5cf6',
 };
 
 export default function RootLayout({
@@ -42,8 +49,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192x192.svg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
       <body className={inter.className}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <PWAProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </PWAProvider>
       </body>
     </html>
   );

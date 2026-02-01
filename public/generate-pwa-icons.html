@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate PWA Icons</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    canvas { border: 1px solid #ccc; margin: 10px; }
+    .icon-container { display: flex; flex-wrap: wrap; gap: 10px; }
+  </style>
+</head>
+<body>
+  <h1>PWA Icon Generator for MemoSphere</h1>
+  <p>Right-click each icon and save as the filename shown below it.</p>
+  <div class="icon-container" id="icons"></div>
+
+  <script>
+    const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+    const container = document.getElementById('icons');
+
+    sizes.forEach(size => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Background gradient (purple to pink)
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#8b5cf6');
+      gradient.addColorStop(1, '#ec4899');
+      
+      // Draw rounded rectangle background
+      const radius = size * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Draw brain emoji representation
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${size * 0.5}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🧠', size / 2, size / 2);
+
+      const div = document.createElement('div');
+      div.style.textAlign = 'center';
+      div.appendChild(canvas);
+      const label = document.createElement('p');
+      label.textContent = `icon-${size}x${size}.png`;
+      label.style.fontSize = '12px';
+      div.appendChild(label);
+      container.appendChild(div);
+    });
+
+    // Generate screenshots too
+    const screenshotSizes = [
+      { width: 1280, height: 720, name: 'screenshot-wide.png' },
+      { width: 720, height: 1280, name: 'screenshot-narrow.png' }
+    ];
+
+    screenshotSizes.forEach(({ width, height, name }) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // Background
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#f3e8ff');
+      gradient.addColorStop(1, '#fce7f3');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Text
+      ctx.fillStyle = '#8b5cf6';
+      ctx.font = `bold ${Math.min(width, height) * 0.08}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('MemoSphere', width / 2, height / 2 - 40);
+      
+      ctx.fillStyle = '#6b7280';
+      ctx.font = `${Math.min(width, height) * 0.04}px Arial`;
+      ctx.fillText('Your Personal Digital Assistant', width / 2, height / 2 + 40);
+
+      const div = document.createElement('div');
+      div.style.textAlign = 'center';
+      div.appendChild(canvas);
+      const label = document.createElement('p');
+      label.textContent = name;
+      label.style.fontSize = '12px';
+      div.appendChild(label);
+      container.appendChild(div);
+    });
+  </script>
+</body>
+</html>

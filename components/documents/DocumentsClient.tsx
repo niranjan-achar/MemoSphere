@@ -36,24 +36,9 @@ export default function DocumentsClient({ user }: DocumentsClientProps) {
     }
   };
 
-  const handleUpload = async (formData: FormData) => {
-    try {
-      const response = await fetch('/api/documents', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        await loadDocuments();
-        setShowUpload(false);
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to upload document');
-      }
-    } catch (error) {
-      console.error('Error uploading document:', error);
-      alert('Failed to upload document');
-    }
+  const handleUploadComplete = async () => {
+    await loadDocuments();
+    setShowUpload(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -203,7 +188,7 @@ export default function DocumentsClient({ user }: DocumentsClientProps) {
       {/* Upload Modal */}
       {showUpload && (
         <DocumentUpload
-          onUpload={handleUpload}
+          onUpload={handleUploadComplete}
           onCancel={() => setShowUpload(false)}
         />
       )}
