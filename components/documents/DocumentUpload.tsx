@@ -133,6 +133,9 @@ export default function DocumentUpload({ onUpload, onCancel }: DocumentUploadPro
     } catch (error: any) {
       console.error('Upload error:', error);
       setUploadError(error.message || 'Failed to upload document. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
