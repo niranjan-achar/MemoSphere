@@ -60,10 +60,10 @@ Thumbs.db
 .DS_Store
 
 
-echo "# MemoSphere" >> README.md
-git init
-git add .
-git commit -m "Version:1.0"
-git branch -M main
-git remote add origin https://github.com/niranjan-achar/MemoSphere.git
-git push -u origin main
+# echo "# MemoSphere" >> README.md
+# git init
+# git add .
+# git commit -m "Version:1.0"
+# git branch -M main
+# git remote add origin https://github.com/niranjan-achar/MemoSphere.git
+# git push -u origin main
