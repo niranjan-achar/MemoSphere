@@ -5,6 +5,11 @@ import type { NextRequest } from 'next/server';
 export async function proxy(req: NextRequest) {
   const res = NextResponse.next();
 
+  // Skip middleware for auth callback to avoid interference
+  if (req.nextUrl.pathname === '/auth/callback') {
+    return res;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
