@@ -38,7 +38,12 @@ router.post('/', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { title, description, datetime, repeat_interval, notification_enabled } = req.body;
+      const { title, description, datetime, repeat, repeat_interval } = req.body;
+
+      if (!title || !datetime) {
+          return res.status(400).json({ error: 'Title and datetime are required' });
+      }
+
     const supabase = createClient();
     
     const { data: reminder, error } = await supabase
@@ -46,21 +51,23 @@ router.post('/', async (req, res) => {
       .insert({
         user_id: user.id,
         title,
-        description,
+          description: description || null,
         datetime,
-        repeat_interval: repeat_interval || 'none',
-        notification_enabled: notification_enabled !== false,
-        status: 'active'
+          repeat: repeat || repeat_interval || 'none',
+          status: 'pending'
       })
       .select()
       .single();
 
-    if (error) throw error;
+      if (error) {
+          console.error('Create reminder DB error:', error);
+          throw error;
+      }
 
     res.status(201).json(reminder);
   } catch (error) {
     console.error('Create reminder error:', error);
-    res.status(500).json({ error: 'Failed to create reminder' });
+      res.status(500).json({ error: 'Failed to create reminder', details: error.message });
   }
 });
 
