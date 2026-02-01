@@ -31,16 +31,18 @@ export async function proxy(req: NextRequest) {
   const protectedPaths = ['/dashboard', '/reminders', '/todos', '/vault', '/notes', '/documents'];
   const isProtectedPath = protectedPaths.some((path) => req.nextUrl.pathname.startsWith(path));
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+
   // Redirect to login if accessing protected route without session
   if (isProtectedPath && !session) {
-    const redirectUrl = new URL('/auth/login', req.url);
+    const redirectUrl = new URL('/auth/login', baseUrl);
     redirectUrl.searchParams.set('redirect', req.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
   // Redirect to dashboard if accessing auth pages with active session
   if ((req.nextUrl.pathname.startsWith('/auth/login') || req.nextUrl.pathname === '/') && session) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    return NextResponse.redirect(new URL('/dashboard', baseUrl));
   }
 
   return res;

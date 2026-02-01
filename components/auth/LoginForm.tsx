@@ -15,10 +15,11 @@ export default function LoginForm() {
       setIsLoading(true);
       setError(null);
 
+      const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${redirectUrl}/auth/callback`,
         },
       });
 

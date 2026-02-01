@@ -39,5 +39,6 @@ export async function GET(request: Request) {
   }
 
   // Redirect to dashboard after successful auth
-  return NextResponse.redirect(new URL('/dashboard', request.url));
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  return NextResponse.redirect(new URL('/dashboard', baseUrl));
 }
